@@ -1,0 +1,244 @@
+/* スタイルは前回のも�Eと同じでぁE*/
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+  background-color: #87ceeb;
+  font-family: "Courier New", Courier, monospace;
+}
+
+#game-container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+}
+
+/* SCOPE UI */
+#scope-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  background: radial-gradient(
+    circle,
+    transparent 25%,
+    rgba(0, 0, 0, 0.4) 28%,
+    rgba(0, 0, 0, 0.8) 60%
+  );
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10;
+  opacity: 0;
+}
+
+#crosshair {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.reticle-line {
+  position: absolute;
+  background-color: rgba(255, 0, 0, 0.8);
+  box-shadow: 0 0 5px #ff0000;
+}
+
+.h-line {
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 1px;
+}
+
+.v-line {
+  left: 50%;
+  top: 0;
+  width: 1px;
+  height: 100%;
+}
+
+.reticle-circle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 300px;
+  height: 300px;
+  border: 1px solid rgba(255, 0, 0, 0.3);
+  border-radius: 50%;
+}
+
+.range-finder {
+  position: absolute;
+  bottom: 25%;
+  right: 25%;
+  color: #ff0000;
+  font-size: 14px;
+  text-shadow: 0 0 5px #ff0000;
+}
+
+/* INFO UI & SCORE */
+#ui-layer {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  color: #00ffcc;
+  text-shadow: 0 0 5px #00ffcc;
+  z-index: 20;
+  pointer-events: none;
+}
+
+h1 {
+  margin: 0;
+  font-size: 24px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+p {
+  margin: 5px 0;
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+.score-display {
+  font-size: 18px;
+  color: #ffff00;
+  margin-top: 10px;
+  text-shadow: 0 0 5px #ffff00;
+}
+
+/* MESSAGE OVERLAY */
+#message {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 40px;
+  font-weight: bold;
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+  opacity: 0;
+  z-index: 30;
+  text-align: center;
+  pointer-events: none;
+}
+
+.sub-msg {
+  font-size: 18px;
+  margin-top: 10px;
+  font-weight: normal;
+  color: #aaa;
+}
+
+/* VIGNETTE FOR CINEMATIC MODE */
+#cinematic-bars {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 5;
+  display: none;
+}
+
+.bar {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 0;
+  background: black;
+  transition: height 0.5s ease;
+}
+
+.top-bar {
+  top: 0;
+}
+
+.bottom-bar {
+  bottom: 0;
+}
+
+/* INSTRUCTIONS */
+#instructions {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  color: white;
+  text-align: right;
+  font-size: 12px;
+  opacity: 0.9;
+  pointer-events: none;
+  line-height: 1.5;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 10px;
+  border-radius: 8px;
+}
+
+/* START SCREEN STYLES */
+#start-screen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.85);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 50;
+  text-align: center;
+}
+
+#start-screen h2 {
+  font-size: 3em;
+  margin-bottom: 0.5em;
+  letter-spacing: 5px;
+  color: #00ffcc;
+  text-shadow: 0 0 15px #00ffcc;
+}
+
+#start-screen p {
+  font-size: 1.2em;
+  margin-bottom: 2em;
+  color: #aaa;
+}
+
+#start-button {
+  padding: 15px 40px;
+  font-size: 1.5em;
+  font-weight: bold;
+  color: black;
+  background-color: #00ffcc;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 0 10px #00ffcc, 0 5px 0 #00aa88;
+}
+
+#start-button:hover {
+  background-color: #33ffdd;
+  box-shadow: 0 0 20px #33ffdd, 0 3px 0 #00aa88;
+  transform: translateY(2px);
+}
+
+#start-button:active {
+  transform: translateY(5px);
+  box-shadow: 0 0 5px #00ffcc, 0 0px 0 #00aa88;
+}
+
+.note {
+  margin-top: 30px;
+  font-size: 0.9em;
+  color: #666;
+}

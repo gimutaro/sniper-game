@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cinematic Sniper: The Hit - Closer Target</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <style>
+        /* スタイルは前回のものと同じです */
+        body { margin: 0; overflow: hidden; background-color: #87CEEB; /* 明るい空色 */ font-family: 'Courier New', Courier, monospace; }
+        #game-container { position: relative; width: 100vw; height: 100vh; }
+        
+        /* SCOPE UI */
+        #scope-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            background: radial-gradient(circle, transparent 25%, rgba(0,0,0,0.4) 28%, rgba(0,0,0,0.8) 60%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            opacity: 0;
+        }
+        
+        #crosshair {
+            position: relative;
+            width: 100%; height: 100%;
+        }
+
+        .reticle-line {
+            position: absolute;
+            background-color: rgba(255, 0, 0, 0.8);
+            box-shadow: 0 0 5px #ff0000;
+        }
+        .h-line { top: 50%; left: 0; width: 100%; height: 1px; }
+        .v-line { left: 50%; top: 0; width: 1px; height: 100%; }
+        
+        .reticle-circle {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 300px; height: 300px;
+            border: 1px solid rgba(255, 0, 0, 0.3);
+            border-radius: 50%;
+        }
+
+        .range-finder {
+            position: absolute;
+            bottom: 25%; right: 25%;
+            color: #ff0000;
+            font-size: 14px;
+            text-shadow: 0 0 5px #ff0000;
+        }
+
+        /* INFO UI & SCORE */
+        #ui-layer {
+            position: absolute;
+            top: 20px; left: 20px;
+            color: #00ffcc; 
+            text-shadow: 0 0 5px #00ffcc;
+            z-index: 20;
+            pointer-events: none;
+        }
+        h1 { margin: 0; font-size: 24px; letter-spacing: 2px; text-transform: uppercase; }
+        p { margin: 5px 0; font-size: 14px; opacity: 0.8; }
+        .score-display {
+            font-size: 18px;
+            color: #ffff00;
+            margin-top: 10px;
+            text-shadow: 0 0 5px #ffff00;
+        }
+
+        /* MESSAGE OVERLAY */
+        #message {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 40px;
+            font-weight: bold;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+            opacity: 0;
+            z-index: 30;
+            text-align: center;
+            pointer-events: none;
+        }
+        .sub-msg { font-size: 18px; margin-top: 10px; font-weight: normal; color: #aaa; }
+
+        /* VIGNETTE FOR CINEMATIC MODE */
+        #cinematic-bars {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 5;
+            display: none;
+        }
+        .bar {
+            position: absolute;
+            left: 0; width: 100%; height: 0;
+            background: black;
+            transition: height 0.5s ease;
+        }
+        .top-bar { top: 0; }
+        .bottom-bar { bottom: 0; }
+        
+        /* INSTRUCTIONS */
+        #instructions {
+            position: absolute;
+            bottom: 20px; right: 20px;
+            color: white;
+            text-align: right;
+            font-size: 12px;
+            opacity: 0.9;
+            pointer-events: none;
+            line-height: 1.5;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        /* START SCREEN STYLES */
+        #start-screen {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.85); /* 暗い背景 */
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 50; /* 最前面に配置 */
+            text-align: center;
+        }
+
+        #start-screen h2 {
+            font-size: 3em;
+            margin-bottom: 0.5em;
+            letter-spacing: 5px;
+            color: #00ffcc;
+            text-shadow: 0 0 15px #00ffcc;
+        }
+
+        #start-screen p {
+            font-size: 1.2em;
+            margin-bottom: 2em;
+            color: #aaa;
+        }
+
+        #start-button {
+            padding: 15px 40px;
+            font-size: 1.5em;
+            font-weight: bold;
+            color: black;
+            background-color: #00ffcc;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 0 10px #00ffcc, 0 5px 0 #00aa88;
+        }
+
+        #start-button:hover {
+            background-color: #33ffdd;
+            box-shadow: 0 0 20px #33ffdd, 0 3px 0 #00aa88;
+            transform: translateY(2px);
+        }
+
+        #start-button:active {
+            transform: translateY(5px);
+            box-shadow: 0 0 5px #00ffcc, 0 0px 0 #00aa88;
+        }
+
+        .note {
+            margin-top: 30px;
+            font-size: 0.9em;
+            color: #666;
+        }
+
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <!-- スタート画面オーバーレイ -->
+    <div id="start-screen">
+        <h2>SILENT VIPER MISSION</h2>
+        <p>
+            敵の車列が目標地点に到達しました。高精度な狙撃で標的を排除してください。<br>
+            **弾丸は一直線に飛びます。動きを予測し、正確にリードしてください。**<br>
+            <br>
+            <span style="color: #00ffcc;">クリックで発砲</span> / マウスで照準
+        </p>
+        <button id="start-button">START MISSION</button>
+        <div class="note">注意：発砲後、ターゲットの動きはスローモーションになります。</div>
+    </div>
+
+    <!-- 既存のUI要素 -->
+    <div id="scope-overlay">
+        <div id="crosshair">
+            <div class="reticle-line h-line"></div>
+            <div class="reticle-line v-line"></div>
+            <div class="reticle-circle"></div>
+            <div class="range-finder">DIST: <span id="dist-val">--</span>m<br>WIND: 0.0</div>
+        </div>
+    </div>
+
+    <div id="ui-layer">
+        <h1>Silent Viper</h1>
+        <p>MISSION: ELIMINATE RED TARGET</p>
+        <p>STATUS: <span id="status-text">INITIATING...</span></p>
+        <div class="score-display">SCORE: <span id="score-val">0</span></div>
+    </div>
+
+    <div id="message">
+        <div id="msg-title">TARGET ELIMINATED</div>
+        <div class="sub-msg">Click to Restart</div>
+    </div>
+
+    <div id="cinematic-bars">
+        <div class="bar top-bar"></div>
+        <div class="bar bottom-bar"></div>
+    </div>
+
+    <div id="instructions">
+        **SCORING:**<br>
+        Car Hit (High Risk): 3 Points<br>
+        Man Walking (Low Risk): 1 Point<br>
+        <hr style="margin: 5px 0;">
+        MOUSE: Aim<br>
+        CLICK: Fire<br>
+        (Lead your shot!)
+    </div>
+</div>
+
+<script>
+    // --- CONFIGURATION ---
+    const CONFIG = {
+        bulletSpeed: 600, 
+        targetSpeed: 60,
+        stopZ: 100, 
+        slowMoFactor: 0.05, 
+        initialFov: 75, 
+        scopedFov: 10,  
+        walkingSpeed: 5 
+    };
+
+    // --- STATE MANAGEMENT ---
+    const STATE = {
+        START: 'start',     
+        INTRO: 'intro', 
+        AIMING: 'aiming',
+        FIRED: 'fired',
+        IMPACT: 'impact',
+        RESULT: 'result'
+    };
+    
+    const TARGET_STATE = {
+        CAR_IN: 'car_in',       
+        EXITING: 'exiting',     
+        WALKING: 'walking',     
+        DEAD: 'dead'
+    };
+    
+    let currentState = STATE.START; 
+    let targetState = TARGET_STATE.CAR_IN;
+    let score = 0;
+
+    // --- THREE.JS SETUP ---
+    const container = document.getElementById('game-container');
+    const startScreen = document.getElementById('start-screen');
+    const startButton = document.getElementById('start-button');
+
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x87CEEB, 0.0005); 
+    scene.background = new THREE.Color(0x87CEEB); 
+
+    const camera = new THREE.PerspectiveCamera(CONFIG.initialFov, window.innerWidth / window.innerHeight, 0.1, 2000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    container.appendChild(renderer.domElement);
+
+    // --- LIGHTING ---
+    const ambientLight = new THREE.AmbientLight(0xaaaaaa); 
+    scene.add(ambientLight);
+
+    const sunLight = new THREE.DirectionalLight(0xffffee, 2.5); 
+    sunLight.position.set(200, 300, 100); 
+    sunLight.castShadow = true;
+    sunLight.shadow.mapSize.width = 4096; 
+    sunLight.shadow.mapSize.height = 4096;
+    sunLight.shadow.camera.left = -500;
+    sunLight.shadow.camera.right = 500;
+    sunLight.shadow.camera.top = 500;
+    sunLight.shadow.camera.bottom = -500;
+    sunLight.shadow.camera.near = 0.5;
+    sunLight.shadow.camera.far = 1000;
+    scene.add(sunLight);
+
+    // --- ASSETS & OBJECTS ---
+    
+    // スナイパーの場所
+    const sniperPos = new THREE.Vector3(50, 20, 150); 
+    const introPos = new THREE.Vector3(55, 30, 200); 
+
+    // 1. Environment (Road and Detailed Buildings)
+    function createEnvironment() {
+        // Ground
+        const groundGeo = new THREE.PlaneGeometry(2000, 2000);
+        const groundMat = new THREE.MeshStandardMaterial({ 
+            color: 0x222222, 
+            roughness: 0.8, 
+            metalness: 0.2 
+        });
+        const ground = new THREE.Mesh(groundGeo, groundMat);
+        ground.rotation.x = -Math.PI / 2;
+        ground.receiveShadow = true;
+        scene.add(ground);
+
+        // Road
+        const roadGeo = new THREE.PlaneGeometry(40, 2000);
+        const roadMat = new THREE.MeshStandardMaterial({ color: 0x444444 }); 
+        const road = new THREE.Mesh(roadGeo, roadMat);
+        road.rotation.x = -Math.PI / 2;
+        road.position.y = 0.1;
+        road.receiveShadow = true;
+        scene.add(road);
+
+        // Buildings (Procedural blocks with more detail)
+        const totalBuildings = 80;
+        const buildingGroup = new THREE.Group();
+        scene.add(buildingGroup);
+
+        const buildingColors = [0x777777, 0x888888, 0x999999, 0x666666, 0x555555];
+        const windowColor = 0x1A2B3C; 
+        const detailColor = 0xAAAAAA; 
+
+        for (let i = 0; i < totalBuildings; i++) {
+            const h = 20 + Math.random() * 80;
+            const w = 10 + Math.random() * 20;
+            const d = 10 + Math.random() * 20;
+            
+            const posX = (Math.random() > 0.5 ? 1 : -1) * (40 + Math.random() * 100);
+            const posZ = (Math.random() - 0.5) * 1500;
+
+            // スナイパーの前のビルを削除するロジック
+            const skipRange = 100;
+            if (Math.abs(posX - sniperPos.x) < skipRange && Math.abs(posZ - sniperPos.z) < skipRange) {
+                continue; 
+            }
+
+            // Base Building Mesh
+            const baseColor = buildingColors[Math.floor(Math.random() * buildingColors.length)];
+            const buildMat = new THREE.MeshStandardMaterial({ 
+                color: baseColor, 
+                roughness: 0.7 + Math.random() * 0.2,
+                metalness: 0.1
+            });
+            const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), buildMat);
+
+            mesh.position.set(posX, h / 2, posZ);
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            buildingGroup.add(mesh);
+
+            // 1. Horizontal Detailing (Ledges/Floors)
+            const detailGeo = new THREE.BoxGeometry(w + 0.5, 0.5, d + 0.5);
+            const detailMat = new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.8 });
+            
+            for (let y = 10; y < h - 5; y += (5 + Math.random() * 5)) {
+                const detailMesh = new THREE.Mesh(detailGeo, detailMat);
+                detailMesh.position.set(posX, y, posZ);
+                buildingGroup.add(detailMesh);
+            }
+
+            // 2. Rooftop Structures (AC Units, Antennas)
+            if (h > 40) { 
+                const roofMat = new THREE.MeshStandardMaterial({ color: detailColor });
+                
+                const structure1 = new THREE.Mesh(new THREE.BoxGeometry(w * 0.4, 2 + Math.random() * 3, d * 0.4), roofMat);
+                structure1.position.set(posX + w * 0.2, h + 1 + structure1.geometry.parameters.height / 2, posZ + d * 0.2);
+                buildingGroup.add(structure1);
+
+                const antennaHeight = 10 + Math.random() * 20;
+                const antennaGeo = new THREE.CylinderGeometry(0.5, 0.5, antennaHeight, 8);
+                const antenna = new THREE.Mesh(antennaGeo, roofMat);
+                antenna.position.set(posX - w * 0.2, h + antennaHeight / 2, posZ - d * 0.2);
+                buildingGroup.add(antenna);
+            }
+
+            // 3. Window Group
+            const side = posX > 0 ? -1 : 1; 
+            const sideOffset = (w / 2) + 0.05;
+            const windowMat = new THREE.MeshStandardMaterial({ 
+                color: windowColor, 
+                roughness: 0.1, 
+                metalness: 0.9 
+            });
+
+            const windowCountX = Math.floor(w / 3);
+            const windowCountY = Math.floor((h - 5) / 5);
+
+            for(let j=0; j < windowCountX; j++) {
+                for(let k=0; k < windowCountY; k++) {
+                    const winGeo = new THREE.PlaneGeometry(1, 4);
+                    const winMesh = new THREE.Mesh(winGeo, windowMat);
+                    
+                    winMesh.position.set(
+                        posX + (j - windowCountX/2 + 0.5) * (w / windowCountX) * 2.5 / 2, 
+                        k * 5 + 7.5,
+                        posZ
+                    );
+
+                    winMesh.position.x = posX + side * sideOffset;
+                    winMesh.rotation.y = side === 1 ? Math.PI / 2 : -Math.PI / 2;
+                    
+                    if (Math.random() < 0.9) { 
+                        buildingGroup.add(winMesh);
+                    }
+                }
+            }
+        }
+    }
+    createEnvironment();
+
+    // 2. The Target Man (Cylinder/Capsule for simplicity)
+    const targetMan = createTargetMan();
+    scene.add(targetMan);
+    targetMan.visible = false; // Initially hidden
+
+    function createTargetMan() {
+        const geo = new THREE.CylinderGeometry(0.5, 0.5, 2.5, 16); // 半径0.5、高さ2.5の円柱
+        const mat = new THREE.MeshBasicMaterial({ color: 0xff0000 }); // ターゲットは赤色
+        const capsule = new THREE.Mesh(geo, mat);
+        capsule.position.y = 1.25; 
+        capsule.name = "TargetMan";
+
+        const glowGeo = new THREE.SphereGeometry(1.5, 16, 16);
+        const glowMat = new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending });
+        const glow = new THREE.Mesh(glowGeo, glowMat);
+        capsule.add(glow); 
+
+        return capsule;
+    }
+
+    // ボディーガードを作成する関数
+    function createBodyguard() {
+        const geo = new THREE.CylinderGeometry(0.5, 0.5, 2.5, 16);
+        const mat = new THREE.MeshBasicMaterial({ color: 0x000000 }); // ボディーガードは黒色
+        const capsule = new THREE.Mesh(geo, mat);
+        capsule.position.y = 1.25;
+        capsule.name = "Bodyguard";
+
+        return capsule;
+    }
+
+    // ボディーガードのグループ
+    const bodyguardGroup = new THREE.Group();
+    scene.add(bodyguardGroup);
+    bodyguardGroup.visible = false;
+    let bodyguardWalkTweens = [];
+
+
+    // 3. The Convoy
+    const convoyGroup = new THREE.Group();
+    scene.add(convoyGroup);
+
+    // Car Generator
+    let targetCarMesh = null;
+    function createCar(color, isTarget) {
+        const group = new THREE.Group();
+        
+        // Body
+        const bodyGeo = new THREE.BoxGeometry(4.5, 1.5, 9);
+        const bodyMat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.2, metalness: 0.6 });
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        body.position.y = 1.5;
+        body.castShadow = true;
+        body.receiveShadow = true;
+        group.add(body);
+
+        // Cabin (Window area)
+        const cabinGeo = new THREE.BoxGeometry(4, 1.2, 5);
+        const cabinMat = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.1, metalness: 0.9 }); 
+        const cabin = new THREE.Mesh(cabinGeo, cabinMat);
+        cabin.position.y = 2.8;
+        group.add(cabin);
+
+        // Wheels
+        const wheelGeo = new THREE.CylinderGeometry(0.8, 0.8, 0.5, 16);
+        const wheelMat = new THREE.MeshStandardMaterial({ color: 0x000000 });
+        const positions = [
+            { x: -2.3, y: 0.8, z: 2.5 },
+            { x: 2.3, y: 0.8, z: 2.5 },
+            { x: -2.3, y: 0.8, z: -2.5 },
+            { x: 2.3, y: 0.8, z: -2.5 }
+        ];
+        positions.forEach(pos => {
+            const wheel = new THREE.Mesh(wheelGeo, wheelMat);
+            wheel.rotation.z = Math.PI / 2;
+            wheel.position.set(pos.x, pos.y, pos.z);
+            group.add(wheel);
+        });
+
+        if (isTarget) {
+            group.name = "TargetCar";
+            targetCarMesh = group; // グローバル変数にターゲットカーを保存
+        } else {
+            // Invisible hitbox for bodyguards
+            const guardGeo = new THREE.BoxGeometry(4.5, 3, 9);
+            const guardMesh = new THREE.Mesh(guardGeo, new THREE.MeshBasicMaterial({ visible: false })); 
+            guardMesh.position.y = 1.5;
+            guardMesh.name = "BodyguardHitbox";
+            group.add(guardMesh);
+        }
+
+        return group;
+    }
+
+    // Assemble Convoy
+    const targetCarObj = createCar(0xff0000, true); 
+    const guardFrontObj = createCar(0x000000, false); 
+    const guardBackObj = createCar(0x000000, false); 
+    const guardLeftObj = createCar(0x000000, false); 
+
+    // Positioning relative to convoy center
+    targetCarObj.position.set(0, 0, 0);
+    guardFrontObj.position.set(0, 0, 18);
+    guardBackObj.position.set(0, 0, -18);
+    guardLeftObj.position.set(-8, 0, 0); 
+
+    convoyGroup.add(targetCarObj);
+    convoyGroup.add(guardFrontObj);
+    convoyGroup.add(guardBackObj);
+    convoyGroup.add(guardLeftObj);
+
+    // Initial Convoy Position: ターゲットがスナイパーに向かってくるように、遠い位置からスタート
+    convoyGroup.position.set(10, 0, -400); 
+
+    // 4. Bullet (強化版 - ユーザー画像参照)
+    let bullet = null; // bulletをThree.jsオブジェクトに
+    
+    function createBullet() {
+        const bulletGroup = new THREE.Group();
+
+        // 弾丸の素材設定
+        // 薬莢（Brass/Copper - 黄色から銅色に変更）
+        const casingMat = new THREE.MeshPhongMaterial({ 
+            color: 0xCD7F32, // Bronze (銅色に変更)
+            specular: 0xffffee, 
+            shininess: 150,
+            metalness: 0.8 
+        });
+        // 弾頭（Copper/Bronze）
+        const tipMat = new THREE.MeshPhongMaterial({ 
+            color: 0xb87333, // Copper/Bronze
+            specular: 0xffffff, 
+            shininess: 200,
+            metalness: 0.9 
+        });
+
+        // スナイパー弾のような細長い比率に変更
+        const bodyRadius = 0.1;
+        const bodyLength = 4.0; 
+        const tipLength = 1.5;
+
+        // Bullet Body (Cylinder) - 薬莢
+        const bodyGeo = new THREE.CylinderGeometry(bodyRadius, bodyRadius, bodyLength, 16);
+        const bulletBody = new THREE.Mesh(bodyGeo, casingMat);
+        // CylinderGeometryのデフォルトはY軸に沿って作成されるため、
+        // 弾丸の進行方向（Z軸）に沿わせるためにX軸で90度回転させる
+        bulletBody.rotation.x = Math.PI / 2; 
+
+        // 先端がグループの原点に来るように調整（先端の長さも考慮）
+        // 回転させたので、Z軸に沿って配置する
+        bulletBody.position.z = -bodyLength / 2 - tipLength; 
+        bulletGroup.add(bulletBody);
+
+        // Bullet Tip (Cone) - 弾頭
+        const tipGeo = new THREE.ConeGeometry(bodyRadius, tipLength, 16);
+        const bulletTip = new THREE.Mesh(tipGeo, tipMat);
+        // ConeGeometryもY軸に沿って作成されるため、X軸で90度回転させる
+        bulletTip.rotation.x = Math.PI / 2; 
+        // 弾頭をボディの先端に配置
+        bulletTip.position.z = -tipLength / 2; 
+        bulletGroup.add(bulletTip);
+        
+        // 弾丸全体をZ軸に沿って飛ぶように回転させる必要はなくなった
+        // bulletGroup.rotation.x = Math.PI / 2; // <-- 削除またはコメントアウト
+        bulletGroup.visible = false;
+        bulletGroup.name = "Bullet";
+        
+        // グループ全体のスケールを調整
+        // 見た目のインパクトのため少し大きくする
+        bulletGroup.scale.set(0.7, 0.7, 0.7); // 弾丸のサイズを小さく調整
+
+        // --- 風のエフェクト (Speed Lines) ---
+        const windGroup = new THREE.Group();
+        windGroup.name = "WindEffect";
+        const lineCount = 3; // 数を減らしてスッキリさせる
+        // 前後で太さが違うとより流線形に見えるかも
+        const windGeo = new THREE.CylinderGeometry(0.01, 0.05, 15, 4); 
+        windGeo.rotateX(Math.PI / 2); // Z軸に向ける
+
+        for(let i=0; i<lineCount; i++) {
+            const windMat = new THREE.MeshBasicMaterial({
+                color: 0xffffff,
+                transparent: true,
+                opacity: 0.3, // 初期透明度を設定して確実に表示されるように
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+            const line = new THREE.Mesh(windGeo, windMat);
+            
+            // 弾の周囲に配置（弾にまとわりつくように範囲を狭める）
+            const angle = (i / lineCount) * Math.PI * 2 + (Math.random() * 0.5);
+            const radius = 0.12 + Math.random() * 0.2; // 弾の半径(0.1)のすぐ外側
+            
+            line.position.set(
+                Math.cos(angle) * radius,
+                Math.sin(angle) * radius,
+                -Math.random() * 5 - 3 // 弾の後方（Z軸負の方向）に配置
+            );
+            
+            // アニメーション用のデータ
+            line.userData = {
+                baseOpacity: Math.random() * 0.3 + 0.1,
+                speed: 30 + Math.random() * 20,
+                offset: Math.random() * 10
+            };
+            
+            windGroup.add(line);
+        }
+        bulletGroup.add(windGroup);
+        
+        return bulletGroup;
+    }
+    
+    bullet = createBullet();
+    scene.add(bullet);
+
+    // カメラを初期位置に設定
+    camera.position.copy(introPos); 
+    camera.lookAt(convoyGroup.position);
+
+    let pitch = 0;
+    let yaw = 0; 
+    
+    const bulletVelocity = new THREE.Vector3();
+    let walkTween = null; 
+
+    // --- UTILITY ---
+    function updateScoreUI() {
+        document.getElementById('score-val').innerText = score;
+    }
+    
+    function startTargetSequence() {
+        if(targetState !== TARGET_STATE.CAR_IN) return; 
+
+        targetState = TARGET_STATE.EXITING;
+        document.getElementById('status-text').innerText = "TARGET EXITING VEHICLE...";
+        
+        gsap.to(convoyGroup.position, {
+            duration: 1.0,
+            onComplete: () => {
+                targetMan.position.copy(convoyGroup.position);
+                targetMan.position.x += 8; 
+                targetMan.position.y = 1.25; 
+                targetMan.position.z -= 5; 
+                targetMan.visible = true;
+                
+                targetMan.rotation.y = Math.PI / 2; 
+
+                targetState = TARGET_STATE.WALKING;
+                document.getElementById('status-text').innerText = "TARGET WALKING! (1 POINT)";
+
+                const distanceToWalk = Math.abs(-200 - targetMan.position.x);
+                const baseDuration = distanceToWalk / CONFIG.walkingSpeed; 
+
+                // ボディーガードを配置
+                bodyguardGroup.visible = true;
+                bodyguardGroup.children.forEach(guard => scene.remove(guard));
+                bodyguardGroup.children = [];
+                bodyguardWalkTweens = [];
+
+                // ボディーガードを4人配置（ターゲットの周りに）
+                const guardPositions = [
+                    { x: 0, z: 3.0 },   // 前
+                    { x: 0, z: -2.0 },  // 後
+                    { x: 3.0, z: 0 },   // 右
+                    { x: -3.0, z: 0 }   // 左
+                ];
+
+                guardPositions.forEach((pos, index) => {
+                    const guard = createBodyguard();
+                    guard.position.copy(targetMan.position);
+                    guard.position.x += pos.x;
+                    guard.position.z += pos.z;
+                    guard.position.y = 1.25;
+                    guard.rotation.y = Math.PI / 2;
+                    bodyguardGroup.add(guard);
+
+                    // ボディーガードも歩行（ターゲットと同じ距離を移動）
+                    const guardWalkTween = gsap.to(guard.position, {
+                        x: -200 + pos.x,
+                        duration: baseDuration,
+                        ease: "none"
+                    });
+                    bodyguardWalkTweens.push(guardWalkTween);
+
+                    if (currentState === STATE.FIRED) {
+                        guardWalkTween.timeScale(CONFIG.slowMoFactor);
+                    }
+                });
+
+                walkTween = gsap.to(targetMan.position, {
+                    x: -200, 
+                    duration: baseDuration, 
+                    ease: "none",
+                    onComplete: () => {
+                        if (currentState !== STATE.RESULT) {
+                            handleHit(false, "TARGET ESCAPED!");
+                        }
+                    }
+                });
+                
+                if (currentState === STATE.FIRED) {
+                    walkTween.timeScale(CONFIG.slowMoFactor);
+                }
+            }
+        });
+    }
+    
+    // --- GAME CONTROL ---
+    function startGame() {
+        // スタート画面を非表示にし、ゲームUIを表示
+        startScreen.style.display = 'none';
+        currentState = STATE.INTRO;
+        document.getElementById('instructions').style.display = 'block';
+
+        // ゲーム開始アニメーション（スコープトランジション）へ移行
+        startScopeTransition();
+    }
+    
+    startButton.addEventListener('click', startGame);
+
+
+    // --- INPUTS & UI ---
+    document.addEventListener('mousemove', (e) => {
+        if (currentState !== STATE.AIMING) return;
+        
+        const sensitivity = 0.002;
+        yaw -= e.movementX * sensitivity;
+        pitch -= e.movementY * sensitivity;
+        
+        pitch = Math.max(-0.5, Math.min(0.5, pitch));
+        
+        let targetDistance = targetCarMesh ? targetCarMesh.position.distanceTo(camera.position) : 500;
+        if (targetState === TARGET_STATE.WALKING || targetState === TARGET_STATE.EXITING) {
+            targetDistance = targetMan.position.distanceTo(camera.position);
+        }
+
+        document.getElementById('dist-val').innerText = Math.floor(targetDistance);
+    });
+
+    document.addEventListener('mousedown', () => {
+        if (currentState === STATE.AIMING) {
+            fireShot();
+        } else if (currentState === STATE.RESULT) {
+            resetGame();
+        }
+    });
+
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // --- CORE MECHANICS ---
+
+    function startScopeTransition() {
+        document.getElementById('status-text').innerText = "ACQUIRING TARGET...";
+        
+        gsap.to(camera, {
+            fov: CONFIG.scopedFov,
+            duration: 2.5,
+            ease: "power2.inOut",
+            onUpdate: () => {
+                camera.updateProjectionMatrix();
+            }
+        });
+        
+        gsap.to(camera.position, {
+            x: sniperPos.x,
+            y: sniperPos.y,
+            z: sniperPos.z,
+            duration: 2.5,
+            delay: 0.2,
+            ease: "power2.inOut",
+            onComplete: () => {
+                currentState = STATE.AIMING;
+                document.getElementById('status-text').innerText = "READY TO FIRE";
+            }
+        });
+
+        gsap.to('#scope-overlay', {
+            opacity: 1,
+            duration: 1,
+            delay: 2.0, 
+        });
+    }
+
+
+    function fireShot() {
+        currentState = STATE.FIRED;
+        
+        const direction = new THREE.Vector3();
+        camera.getWorldDirection(direction);
+        
+        // 弾丸はカメラの少し前から発射
+        bullet.position.copy(camera.position);
+        bullet.position.add(direction.clone().multiplyScalar(2));
+        
+        bullet.visible = true;
+        
+        // 弾丸の向きを進行方向に合わせる
+        // ジオメトリの向きを修正したので、ここでは回転は不要
+        bullet.lookAt(bullet.position.clone().add(direction)); 
+        
+        bulletVelocity.copy(direction).multiplyScalar(CONFIG.bulletSpeed);
+
+        // UI Changes
+        document.getElementById('scope-overlay').style.opacity = '0';
+        document.getElementById('status-text').innerText = "BULLET TRACKING";
+        document.getElementById('cinematic-bars').style.display = 'block';
+        
+        setTimeout(() => {
+            document.querySelector('.top-bar').style.height = '10%';
+            document.querySelector('.bottom-bar').style.height = '10%';
+        }, 10);
+        
+        // ターゲットが歩行中の場合、即座にスローモーション適用
+        if (walkTween) {
+            walkTween.timeScale(CONFIG.slowMoFactor);
+        }
+        // ボディーガードにもスローモーション適用
+        bodyguardWalkTweens.forEach(tween => {
+            if (tween) {
+                tween.timeScale(CONFIG.slowMoFactor);
+            }
+        });
+    }
+
+    function checkCollision(delta) {
+        // 衝突判定のために、弾丸を小さな球と見なす
+        // 弾丸のスケールに合わせて、判定球の半径を調整 (0.75 -> 0.35)
+        const bulletSphere = new THREE.Sphere(bullet.position, 0.35); 
+        
+        const collidableObjects = [];
+        
+        if (targetState === TARGET_STATE.CAR_IN) {
+            collidableObjects.push(targetCarMesh);
+        } else if (targetState === TARGET_STATE.WALKING) {
+            collidableObjects.push(targetMan);
+            // ボディーガードも衝突判定対象に追加
+            bodyguardGroup.children.forEach(guard => {
+                collidableObjects.push(guard);
+            });
+        }
+
+        // 護衛車は常に判定対象
+        convoyGroup.children.forEach(car => {
+            if (car.name !== "TargetCar") {
+                // CarのグループにはBodyguardHitboxという目に見えないボックスが入っている
+                const hitbox = car.getObjectByName("BodyguardHitbox");
+                if (hitbox) collidableObjects.push(hitbox);
+            }
+        });
+
+        let hitSuccess = false;
+        let hitGuard = false;
+
+        collidableObjects.forEach(obj => {
+            // オブジェクトのバウンディングボックスを取得
+            const objBox = new THREE.Box3().setFromObject(obj);
+            
+            // 弾丸の球とオブジェクトのボックスが交差しているかチェック
+            if (objBox.intersectsSphere(bulletSphere)) {
+                if (obj.name === "TargetCar" || obj.name === "TargetMan") {
+                    hitSuccess = true;
+                } else if (obj.name === "BodyguardHitbox" || obj.name === "Bodyguard") {
+                    hitGuard = true;
+                }
+            }
+        });
+
+        if (hitSuccess) {
+            let points = 0;
+            let targetType = "";
+            if (targetState === TARGET_STATE.CAR_IN) {
+                points = 3;
+                targetType = "Car Hit (3 Pts)";
+            } else if (targetState === TARGET_STATE.WALKING) {
+                points = 1;
+                targetType = "Man Hit (1 Pt)";
+            }
+            targetState = TARGET_STATE.DEAD;
+            handleHit(true, targetType, points);
+            return true;
+        }
+        
+        if (hitGuard) {
+            handleHit(false, "ARMOR DEFLECTED", 0);
+            return true;
+        }
+
+        // Ground collision (Y座標が負になったら地面衝突と見なす)
+        if (bullet.position.y < 0.5) {
+            handleHit(false, "MISSED (GROUND)", 0);
+            return true;
+        }
+        
+        return false;
+    }
+
+    function handleHit(success, reason, points = 0) {
+        currentState = STATE.IMPACT;
+        
+        // ターゲットの動きを停止
+        if (walkTween) {
+            walkTween.timeScale(0); 
+        }
+        // ボディーガードの動きも停止
+        bodyguardWalkTweens.forEach(tween => {
+            if (tween) {
+                tween.timeScale(0);
+            }
+        });
+
+        // スコアリング
+        if (success) {
+            score += points;
+            updateScoreUI();
+        }
+
+        // ターゲットを撃破した場合、オブジェクトを非表示に
+        if (success && targetState === TARGET_STATE.DEAD) {
+             if (targetMan.visible) {
+                targetMan.visible = false;
+            } else if (targetCarMesh) {
+                // 車を停止させる
+            }
+        }
+        
+        createExplosion(bullet.position, success ? 0xff0000 : 0xaaaaaa);
+        
+        bullet.visible = false;
+        
+        setTimeout(() => {
+            showResult(success, reason);
+        }, 1000); 
+    }
+
+    function createExplosion(pos, color) {
+        const particleCount = 20;
+        const geo = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+        const mat = new THREE.MeshBasicMaterial({ color: color });
+        
+        for(let i=0; i<particleCount; i++) {
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.copy(pos);
+            mesh.position.x += (Math.random() - 0.5) * 2;
+            mesh.position.y += (Math.random() - 0.5) * 2;
+            mesh.position.z += (Math.random() - 0.5) * 2;
+            
+            mesh.userData.vel = new THREE.Vector3(
+                (Math.random() - 0.5) * 10,
+                (Math.random() - 0.5) * 10,
+                (Math.random() - 0.5) * 10
+            );
+            scene.add(mesh);
+            
+            gsap.to(mesh.position, {
+                x: mesh.position.x + mesh.userData.vel.x * 2,
+                y: mesh.position.y + mesh.userData.vel.y * 2,
+                z: mesh.position.z + mesh.userData.vel.z * 2,
+                duration: 1,
+                ease: "power2.out",
+                onComplete: () => scene.remove(mesh)
+            });
+            gsap.to(mesh.scale, {
+                x: 0, y: 0, z: 0, duration: 1
+            });
+        }
+    }
+
+    function showResult(success, reason) {
+        currentState = STATE.RESULT;
+        const msgEl = document.getElementById('message');
+        const titleEl = document.getElementById('msg-title');
+        const subEl = document.querySelector('.sub-msg');
+        
+        msgEl.style.opacity = 1;
+        
+        if (success) {
+            titleEl.innerText = `HIT! (+${reason.split('(')[1].replace(')', '')})`;
+            titleEl.style.color = "#00ff00";
+            titleEl.style.textShadow = "0 0 20px #00ff00";
+            subEl.innerText = `Target Eliminated. Total Score: ${score}. Click to Retry.`;
+        } else {
+            titleEl.innerText = "MISSION FAILED";
+            titleEl.style.color = "#ff0000";
+            titleEl.style.textShadow = "0 0 20px #ff0000";
+            subEl.innerText = reason + ". Click to Retry.";
+        }
+    }
+
+    function resetGame() {
+        // スコアは維持したまま、ターゲットの状態と位置をリセット
+        currentState = STATE.START; 
+        targetState = TARGET_STATE.CAR_IN;
+        
+        // GSAPアニメーションが実行中の場合、すべて停止/リセット
+        if (walkTween) {
+            walkTween.kill();
+            walkTween = null;
+        }
+        // ボディーガードのアニメーションも停止/リセット
+        bodyguardWalkTweens.forEach(tween => {
+            if (tween) {
+                tween.kill();
+            }
+        });
+        bodyguardWalkTweens = [];
+        
+        // Reset UI
+        document.getElementById('message').style.opacity = 0;
+        document.getElementById('scope-overlay').style.opacity = 0; 
+        document.querySelector('.top-bar').style.height = '0';
+        document.querySelector('.bottom-bar').style.height = '0';
+        document.getElementById('status-text').innerText = "INITIATING...";
+        document.getElementById('instructions').style.display = 'none'; 
+        startScreen.style.display = 'flex'; // スタート画面を再表示
+        
+        // Reset Camera
+        camera.position.copy(introPos);
+        camera.fov = CONFIG.initialFov;
+        camera.updateProjectionMatrix();
+        camera.lookAt(convoyGroup.position); 
+        
+        // Reset Bullet & Target Man visibility
+        bullet.visible = false;
+        targetMan.visible = false;
+        bodyguardGroup.visible = false;
+        bodyguardGroup.children.forEach(guard => scene.remove(guard));
+        bodyguardGroup.children = [];
+        
+        // Reset Convoy
+        convoyGroup.position.set(10, 0, -400);
+    }
+
+    // --- MAIN LOOP ---
+
+    const clock = new THREE.Clock();
+    
+    function animate() {
+        requestAnimationFrame(animate);
+        
+        const rawDelta = clock.getDelta();
+        let dt = Math.min(rawDelta, 0.1); 
+        
+        if (currentState === STATE.START) {
+            // スタート画面表示中は特に何もしない
+        }
+
+        if (currentState !== STATE.START && currentState !== STATE.RESULT) {
+            
+            // 1. Move Convoy
+            if (targetState !== TARGET_STATE.WALKING && targetState !== TARGET_STATE.DEAD) {
+                let speed = CONFIG.targetSpeed;
+                
+                // 弾丸が発射された場合、移動速度にスローモーションファクターを適用
+                if (currentState === STATE.FIRED) {
+                    speed *= CONFIG.slowMoFactor; 
+                }
+                
+                // 車が停止地点に到達したかチェック
+                if (convoyGroup.position.z >= CONFIG.stopZ) {
+                    convoyGroup.position.z = CONFIG.stopZ; // 停止
+                    if (targetState === TARGET_STATE.CAR_IN) {
+                        startTargetSequence(); // 人物降車シーケンス開始
+                    }
+                } else {
+                    // 移動 (Z軸方向にプラス)
+                    convoyGroup.position.z += speed * dt;
+                }
+                
+                // ホイール回転
+                const wheelSpeed = speed * 0.5;
+                convoyGroup.children.forEach(car => {
+                    car.children.forEach(part => {
+                        if (part.geometry.type === 'CylinderGeometry') {
+                            part.rotation.x += wheelSpeed * dt;
+                        }
+                    });
+                });
+                
+                // 護衛車のアニメーション
+                let guardAnimFactor = 0.002;
+                if (currentState === STATE.FIRED) {
+                    guardAnimFactor *= CONFIG.slowMoFactor * 20; 
+                }
+                guardLeftObj.position.z = Math.sin(Date.now() * guardAnimFactor) * 8; 
+            }
+
+            // 2. State Logic
+            if (currentState === STATE.AIMING) {
+                // スコープのエイム操作
+                camera.rotation.order = "YXZ";
+                camera.rotation.y = yaw;
+                camera.rotation.x = pitch;
+                
+            } else if (currentState === STATE.FIRED) {
+                // BULLET TIME LOGIC
+                
+                // 風のエフェクトアニメーション
+                const windGroup = bullet.getObjectByName("WindEffect");
+                if (windGroup) {
+                    windGroup.children.forEach(line => {
+                        // Z軸マイナス方向（後方）へ移動
+                        line.position.z -= line.userData.speed * dt;
+                        
+                        // ある程度後ろに行ったら前に戻す（ループ）
+                        if (line.position.z < -20) {
+                            line.position.z = -Math.random() * 5 - 3;
+                        }
+                        
+                        // 点滅効果
+                        line.material.opacity = line.userData.baseOpacity + Math.sin(Date.now() * 0.01 + line.userData.offset) * 0.05;
+                    });
+                }
+                
+                // 弾丸の移動
+                const slowMotionDT = dt * CONFIG.slowMoFactor;
+                const moveStep = bulletVelocity.clone().multiplyScalar(slowMotionDT);
+                bullet.position.add(moveStep);
+                
+                // カメラ追跡
+                const idealOffset = bulletVelocity.clone().normalize().multiplyScalar(-5); 
+                idealOffset.y += 1; 
+                
+                const idealPos = bullet.position.clone().add(idealOffset);
+                
+                camera.position.lerp(idealPos, 0.1);
+                camera.lookAt(bullet.position);
+                
+                // カメラのFOVをよりシネマティックに変化させる
+                camera.fov = THREE.MathUtils.lerp(camera.fov, 40, 0.05); // 追跡中は少し広めに
+                camera.updateProjectionMatrix();
+
+                // 衝突判定
+                checkCollision(dt);
+                
+                // Fail safe: Bullet goes too far 
+                if (bullet.position.y < -10 || bullet.position.z < -500 || bullet.position.z > 600) {
+                    handleHit(false, "OUT OF RANGE", 0);
+                }
+            } else if (currentState === STATE.IMPACT) {
+                // 衝突後のパーティクルを継続して更新 (ここでは何もしない。Explosionはgsapで処理済み)
+            }
+        }
+        
+        // 3. Render
+        renderer.render(scene, camera);
+    }
+    
+    // --- INITIALIZATION ---
+    // ゲーム開始時はスタート画面が表示されている状態
+    updateScoreUI();
+    document.getElementById('instructions').style.display = 'none'; // 初期状態では非表示
+    animate();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,30 @@
+{
+  "name": "snipergame",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "gsap": "^3.12.5",
+    "next": "^14.2.15",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "three": "^0.169.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.9",
+    "@types/react": "^18.3.11",
+    "@types/three": "^0.181.0",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^14.2.15",
+    "typescript": "^5.6.3"
+  }
+}
